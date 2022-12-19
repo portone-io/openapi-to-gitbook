@@ -1,0 +1,5 @@
+deps:
+  - iamport/federated-public-interface@main
+root:
+  lock:
+    iamport/federated-public-interface@main: 9162802fc656d7cb3e4c51bb5817cebc74e08236

@@ -1,0 +1,7 @@
+{
+  "tasks": {
+    "download-schema-yamls": "pollapo install",
+    "bake-one-schema-json": "deno run -A --unstable ./bake.ts --in=./.pollapo/iamport/federated-public-interface/openapi/portone.yaml --out=./tmp/schema.json",
+    "openapi-to-gitbook": "deno run -A --unstable ./openapi-to-gitbook.ts --in=./tmp/schema.json --out=./out"
+  }
+}
