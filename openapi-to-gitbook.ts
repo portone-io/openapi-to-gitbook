@@ -1,5 +1,5 @@
 import { ensureDir } from "https://deno.land/std@0.168.0/fs/mod.ts";
-import { resolve } from "https://deno.land/std@0.168.0/path/mod.ts";
+import { dirname, resolve } from "https://deno.land/std@0.168.0/path/mod.ts";
 import { Command } from "https://deno.land/x/cliffy@v0.25.5/command/mod.ts";
 import { ProcessedSchema } from "./bake/schema/resolved-types.ts";
 
@@ -46,13 +46,30 @@ function getToc(): string {
 }
 
 function getTagMd(pathGroup: PathGroup): string {
-  const result: string[] = [];
-  return result.join("");
+  return arrayToString([
+    "---\n",
+    `description: ${pathGroup.description}에 관련된 API 를 확인할 수 있습니다.\n`,
+    "---\n",
+    "\n",
+    `# ${pathGroup.description}관련 API\n`,
+  ]);
 }
 
 function getOperationMd(item: PathGroup & PathGroupItem): string {
-  const result: string[] = [];
-  return result.join("");
+  const { path, methodOperation: { method, operation } } = item;
+  const { summary, description } = operation;
+  const baseUrl = "https://api.iamport.kr";
+  return arrayToString([
+    `# ⌨ ${summary}\n`,
+    `{% swagger method="${method}" path="${path}" baseUrl=${baseUrl} summary=${
+      JSON.stringify(description || summary)
+    } %}\n`,
+    // description
+    // parameter
+    // response
+    `{% endswagger %}`,
+    // response schema
+  ]);
 }
 
 interface PathGroup {
@@ -70,6 +87,13 @@ function* pathGroups(schema: ProcessedSchema): Generator<PathGroup> {
   }
 }
 
+type NestedStringArray = (string | undefined | NestedStringArray)[];
+function arrayToString(array: NestedStringArray): string {
+  return (array as string[]).flat(Infinity).filter((v) => v != null).join("");
+}
+
 async function write(path: string[], text: string): Promise<void> {
-  await Deno.writeTextFile(resolve(options.out, ...path), text);
+  const target = resolve(options.out, ...path);
+  await ensureDir(dirname(target));
+  await Deno.writeTextFile(target, text);
 }
