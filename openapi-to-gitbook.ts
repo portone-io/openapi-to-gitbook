@@ -1,6 +1,7 @@
 import { ensureDir } from "https://deno.land/std@0.168.0/fs/mod.ts";
 import { dirname, resolve } from "https://deno.land/std@0.168.0/path/mod.ts";
 import { Command } from "https://deno.land/x/cliffy@v0.25.5/command/mod.ts";
+import { SchemaObject } from "./bake/schema/openapi-types.ts";
 import { ProcessedSchema } from "./bake/schema/resolved-types.ts";
 
 const { options } = await new Command()
@@ -26,7 +27,7 @@ for (const pathGroup of pathGroups(schema)) {
     const { methodOperation: { operation: { operationId } } } = item;
     await write(
       [`./api-v2/${tag}/${operationId}.md`],
-      getOperationMd({ ...pathGroup, ...item }),
+      getOperationMd(schema.entityMap, { ...pathGroup, ...item }),
     );
   }
 }
@@ -55,9 +56,12 @@ function getTagMd(pathGroup: PathGroup): string {
   ]);
 }
 
-function getOperationMd(item: PathGroup & PathGroupItem): string {
+function getOperationMd(
+  entityMap: ProcessedSchema["entityMap"],
+  item: PathGroup & PathGroupItem,
+): string {
   const { path, methodOperation: { method, operation } } = item;
-  const { summary, description } = operation;
+  const { summary, description, parameters = [], responses } = operation;
   const baseUrl = "https://api.iamport.kr";
   return arrayToString([
     `# ⌨ ${summary}\n`,
@@ -65,11 +69,53 @@ function getOperationMd(item: PathGroup & PathGroupItem): string {
       JSON.stringify(description || summary)
     } %}\n`,
     // description
-    // parameter
-    // response
-    `{% endswagger %}`,
-    // response schema
+    parameters.map((p) => [
+      `{% swagger-parameter in="${p.in}" name="${p.name}" type="${p.schema?.type}" %}\n`,
+      p.description && p.description + "\n",
+      `{% endswagger-parameter %}\n`,
+    ]),
+    Object.entries(responses).map(([status, res]) => {
+      const schema = res.content!["application/json"].schema!;
+      const refs = collectAllRefs(schema);
+      return [
+        `{% swagger-response status="${status}" description=${
+          JSON.stringify(res.description)
+        } %}\n`,
+        `{% tabs %}\n`,
+        getResTab("Response", schema),
+        refs.map((ref) => getResTab(getRefName(ref), entityMap[ref])),
+        `{% endtabs %}\n`,
+        `{% endswagger-response %}\n`,
+      ];
+    }),
+    `{% endswagger %}\n`,
   ]);
+  function getResTab(title: string, schema: SchemaObject): string {
+    return arrayToString([
+      `{% tab title="${title}" %}\n`,
+      // TODO
+      `{% endtab %}\n`,
+    ]);
+  }
+}
+
+function getRefName(ref: string): string {
+  return String(ref.split("/").pop());
+}
+function collectAllRefs(object: any): string[] {
+  const refs: Set<string> = new Set();
+  walk(object);
+  return Array.from(refs);
+  function walk(value: any) {
+    if (typeof value !== "object") return;
+    if (Array.isArray(value)) for (const item of value) walk(item);
+    else {
+      for (const [key, item] of Object.entries(value)) {
+        if (key === "#ref") refs.add(String(item));
+        else walk(item);
+      }
+    }
+  }
 }
 
 interface PathGroup {
