@@ -27,7 +27,7 @@ for (const pathGroup of pathGroups(schema)) {
     const { methodOperation: { operation: { operationId } } } = item;
     await write(
       [`./api-v2/${tag}/${operationId}.md`],
-      getOperationMd(schema.entityMap, { ...pathGroup, ...item }),
+      getOperationMd(schema, { ...pathGroup, ...item }),
     );
   }
 }
@@ -57,9 +57,10 @@ function getTagMd(pathGroup: PathGroup): string {
 }
 
 function getOperationMd(
-  entityMap: ProcessedSchema["entityMap"],
+  schema: ProcessedSchema,
   item: PathGroup & PathGroupItem,
 ): string {
+  const { refMap, entityMap } = schema;
   const { path, methodOperation: { method, operation } } = item;
   const { summary, description, parameters = [], responses } = operation;
   const baseUrl = "https://api.iamport.kr";
@@ -83,7 +84,15 @@ function getOperationMd(
         } %}\n`,
         `{% tabs %}\n`,
         getResTab("Response", schema),
-        refs.map((ref) => getResTab(getRefName(ref), entityMap[ref])),
+        refs.map((ref) => {
+          const title = getRefName(ref);
+          const schema = refMap[ref] || entityMap[ref];
+          if (schema == null) {
+            console.log(title, ref);
+            return "";
+          }
+          return getResTab(title, schema);
+        }),
         `{% endtabs %}\n`,
         `{% endswagger-response %}\n`,
       ];
@@ -91,10 +100,79 @@ function getOperationMd(
     `{% endswagger %}\n`,
   ]);
   function getResTab(title: string, schema: SchemaObject): string {
+    const type = schema.type === "object"
+      ? "object"
+      : Array.isArray(schema.enum)
+      ? "enum"
+      : schema.allOf
+      ? "all-of"
+      : schema.$ref
+      ? "ref"
+      : "";
+    if (!type) {
+      console.log("unhandled", title, schema);
+      return "";
+    }
     return arrayToString([
       `{% tab title="${title}" %}\n`,
-      // TODO
+      type === "object"
+        ? getResTabObject(schema)
+        : type === "enum"
+        ? getResTabEnum(schema)
+        : type === "all-of"
+        ? getResTabAllOf(schema)
+        : type === "ref"
+        ? getResTabRef(schema)
+        : "",
       `{% endtab %}\n`,
+    ]);
+  }
+  function getResTabObject(schema: SchemaObject): string {
+    return arrayToString(
+      Object.entries(schema.properties || {}).map(([key, value]) => {
+        const typeName = getTypeName(value);
+        const color = value.type === "boolean"
+          ? "orange"
+          : value.type === "integer"
+          ? "blue"
+          : value.type === "number"
+          ? "blue"
+          : value.type === "string"
+          ? "green"
+          : "red";
+        return [
+          `**\`${key}\`** <mark style="color:${color};">**${typeName}**</mark>\n\n`,
+          value.description && value.description + "\n\n",
+          "****\n\n",
+        ];
+      }),
+    );
+    function getTypeName(schema: SchemaObject): string {
+      switch (schema.type) {
+        case "object":
+          return getRefName(String(schema["#ref"]));
+        case "array":
+          return `Array\\[${getTypeName(schema.items || {})}]`;
+        default:
+          return String(schema.type);
+      }
+    }
+  }
+  function getResTabEnum(schema: SchemaObject): string {
+    return arrayToString([
+      schema.description && schema.description + "\n\n",
+      schema.default && `기본값: \`"${schema.default}"\`\n\n`,
+      (schema.enum as string[]).map((v) => `\`"${v}"\``).join(", ") + "\n",
+    ]);
+  }
+  function getResTabAllOf(schema: SchemaObject): string {
+    return arrayToString([
+      `(TODO)\n`,
+    ]);
+  }
+  function getResTabRef(schema: SchemaObject): string {
+    return arrayToString([
+      `(TODO)\n`,
     ]);
   }
 }
