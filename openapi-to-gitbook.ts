@@ -59,15 +59,17 @@ function getOperationMd(
   const { refMap, entityMap } = schema;
   const { path, methodOperation: { method, operation } } = item;
   const { summary, description, parameters = [], responses } = operation;
-  const baseUrl = "https://api.iamport.kr";
+  const baseUrl = "https://api.portone.io";
   return arrayToString([
     `## ⌨ ${summary}\n`,
-    `{% swagger method="${method}" path="${path}" baseUrl=${baseUrl} summary=${
+    `{% swagger method="${method}" path="${path}" baseUrl="${baseUrl}" summary=${
       JSON.stringify(description || summary)
     } %}\n`,
     // description
     parameters.map((p) => [
-      `{% swagger-parameter in="${p.in}" name="${p.name}" type="${p.schema?.type}" %}\n`,
+      `{% swagger-parameter in="${p.in}" name="${p.name}" type="${p.schema?.type}" required="${
+        Boolean(p.required)
+      }" %}\n`,
       p.description && p.description + "\n",
       `{% endswagger-parameter %}\n`,
     ]),
@@ -117,8 +119,10 @@ function getOperationMd(
     ]);
   }
   function getResTabObject(schema: SchemaObject): string {
+    const { properties = {} } = schema;
+    const requiredSet = new Set<string>(schema.required || []);
     return arrayToString(
-      Object.entries(schema.properties || {}).map(([key, value]) => {
+      Object.entries(properties).map(([key, value]) => {
         const typeName = getTypeName(value);
         const color = value.type === "boolean"
           ? "orange"
@@ -130,7 +134,11 @@ function getOperationMd(
           ? "green"
           : "red";
         return [
-          `**\`${key}\`** <mark style="color:${color};">**${typeName}**</mark>\n\n`,
+          `**\`${key}\`** ${
+            requiredSet.has(key)
+              ? `<mark style="color:red;">**\\***</mark>`
+              : ""
+          } <mark style="color:${color};">**${typeName}**</mark>\n\n`,
           value.description && value.description + "\n\n",
           "****\n\n",
         ];
