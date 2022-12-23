@@ -15,44 +15,40 @@ await ensureDir(options.out);
 
 const schema: ProcessedSchema = JSON.parse(await Deno.readTextFile(options.in));
 
-await write(["./SUMMARY.md"], getToc());
+// await write(["./SUMMARY.md"], getToc());
 
 for (const pathGroup of pathGroups(schema)) {
-  const { tag, items } = pathGroup;
+  const { tag } = pathGroup;
   await write(
-    [`./api-v2/${tag}/README.md`],
-    getTagMd(pathGroup),
+    [`./api-v2/${tag}.md`],
+    getTagMd(schema, pathGroup),
   );
-  for (const item of items) {
-    const { methodOperation: { operation: { operationId } } } = item;
-    await write(
-      [`./api-v2/${tag}/${operationId}.md`],
-      getOperationMd(schema, { ...pathGroup, ...item }),
-    );
-  }
 }
 
-function getToc(): string {
-  const result: string[] = [
-    "# Table of contents\n\n",
-  ];
-  for (const { tag, description, items } of pathGroups(schema)) {
-    result.push(`* [${description} API](./api-v2/${tag}/README.md)\n`);
-    for (const { methodOperation } of items) {
-      const { operationId, summary } = methodOperation.operation;
-      result.push(`  * [⌨ ${summary}](./api-v2/${tag}/${operationId}.md)\n`);
-    }
-  }
-  return result.join("");
-}
+// function getToc(): string {
+//   const result: string[] = [
+//     "# Table of contents\n\n",
+//   ];
+//   for (const { tag, description, items } of pathGroups(schema)) {
+//     result.push(`* [${description} API](./api-v2/${tag}/README.md)\n`);
+//     for (const { methodOperation } of items) {
+//       const { operationId, summary } = methodOperation.operation;
+//       result.push(`  * [⌨ ${summary}](./api-v2/${tag}/${operationId}.md)\n`);
+//     }
+//   }
+//   return result.join("");
+// }
 
-function getTagMd(pathGroup: PathGroup): string {
+function getTagMd(schema: ProcessedSchema, pathGroup: PathGroup): string {
   return arrayToString([
     "---\n",
     `description: ${pathGroup.description}에 관련된 API 를 확인할 수 있습니다.\n`,
     "---\n",
     "\n",
-    `# ${pathGroup.description}관련 API\n`,
+    `# ${pathGroup.description} 관련 API\n\n`,
+    pathGroup.items.map((item) =>
+      getOperationMd(schema, { ...pathGroup, ...item })
+    ),
   ]);
 }
 
@@ -65,7 +61,7 @@ function getOperationMd(
   const { summary, description, parameters = [], responses } = operation;
   const baseUrl = "https://api.iamport.kr";
   return arrayToString([
-    `# ⌨ ${summary}\n`,
+    `## ⌨ ${summary}\n`,
     `{% swagger method="${method}" path="${path}" baseUrl=${baseUrl} summary=${
       JSON.stringify(description || summary)
     } %}\n`,
@@ -82,47 +78,40 @@ function getOperationMd(
         `{% swagger-response status="${status}" description=${
           JSON.stringify(res.description)
         } %}\n`,
-        `{% tabs %}\n`,
-        getResTab("Response", schema),
-        refs.map((ref) => {
-          const title = getRefName(ref);
-          const schema = refMap[ref] || entityMap[ref];
-          if (schema == null) {
-            console.log(title, ref);
-            return "";
-          }
-          return getResTab(title, schema);
-        }),
-        `{% endtabs %}\n`,
+        chunk([
+          getResTab("Response", schema),
+          ...refs.sort(
+            (a, b) => (
+              getRefName(a.toLowerCase()) < getRefName(b.toLowerCase()) ? -1 : 1
+            ),
+          ).map((ref) => {
+            const title = getRefName(ref);
+            const schema = refMap[ref] || entityMap[ref];
+            if (schema == null) {
+              console.log(title, ref);
+              return "";
+            }
+            return getResTab(title, schema);
+          }),
+        ], 4).map((tabs) => [
+          `{% tabs %}\n`,
+          tabs,
+          `{% endtabs %}\n`,
+        ]),
         `{% endswagger-response %}\n`,
       ];
     }),
     `{% endswagger %}\n`,
   ]);
-  function getResTab(title: string, schema: SchemaObject): string {
-    const type = schema.type === "object"
-      ? "object"
-      : Array.isArray(schema.enum)
-      ? "enum"
-      : schema.allOf
-      ? "all-of"
-      : schema.$ref
-      ? "ref"
-      : "";
-    if (!type) {
-      console.log("unhandled", title, schema);
-      return "";
-    }
+  function getResTab(title: string, _schema: SchemaObject): string {
+    const schema = resolve(_schema);
+    const type = Array.isArray(schema.enum) ? "enum" : "object";
     return arrayToString([
       `{% tab title="${title}" %}\n`,
       type === "object"
         ? getResTabObject(schema)
         : type === "enum"
         ? getResTabEnum(schema)
-        : type === "all-of"
-        ? getResTabAllOf(schema)
-        : type === "ref"
-        ? getResTabRef(schema)
         : "",
       `{% endtab %}\n`,
     ]);
@@ -165,15 +154,20 @@ function getOperationMd(
       (schema.enum as string[]).map((v) => `\`"${v}"\``).join(", ") + "\n",
     ]);
   }
-  function getResTabAllOf(schema: SchemaObject): string {
-    return arrayToString([
-      `(TODO)\n`,
-    ]);
-  }
-  function getResTabRef(schema: SchemaObject): string {
-    return arrayToString([
-      `(TODO)\n`,
-    ]);
+  function resolve(schema: SchemaObject): SchemaObject {
+    if (schema.type) return schema;
+    if (schema.oneOf) {
+      return { ...resolve(schema.oneOf[0]), description: schema.description };
+    }
+    if (schema.allOf) {
+      return Object.assign({}, ...schema.allOf.map(resolve), {
+        description: schema.description,
+      });
+    }
+    if (schema.$ref) {
+      return refMap[schema.$ref] || entityMap[schema.$ref];
+    }
+    return schema;
   }
 }
 
@@ -220,4 +214,10 @@ async function write(path: string[], text: string): Promise<void> {
   const target = resolve(options.out, ...path);
   await ensureDir(dirname(target));
   await Deno.writeTextFile(target, text);
+}
+
+function chunk<T>(arr: T[], size: number): T[][] {
+  return Array(Math.ceil(arr.length / size)).fill(0).map(
+    (_, index) => arr.slice(index * size, (index + 1) * size),
+  );
 }
