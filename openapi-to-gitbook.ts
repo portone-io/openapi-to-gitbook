@@ -210,10 +210,15 @@ function collectAllRefs(
     if (schema.properties) {
       for (const [, item] of Object.entries(schema.properties)) {
         const ref = item["#ref"] || item.items?.["#ref"];
-        if (!ref) continue;
-        const itemSchema = refMap[ref] || entityMap[ref];
-        if (!itemSchema.enum && hasParent) refs.add(ref);
-        walk(itemSchema, !hasParent);
+        if (ref) {
+          const itemSchema = refMap[ref] || entityMap[ref];
+          if (!itemSchema.enum && hasParent) refs.add(ref);
+          walk(itemSchema, !hasParent);
+        } else {
+          if (item.type !== "array" && item.properties) {
+            walk(item, !hasParent);
+          }
+        }
       }
     }
   }
