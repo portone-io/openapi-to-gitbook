@@ -125,8 +125,9 @@ function getOperationMd(
     const { properties = {} } = schema;
     const requiredSet = new Set<string>(schema.required || []);
     return arrayToString(
-      Object.entries(properties).map(([key, value]) => {
-        const typeName = getTypeName(value);
+      Object.entries(properties).map(([key, _value]) => {
+        const value = resolveSchema(_value, refMap, entityMap);
+        const typeName = getTypeName(_value, value);
         const color = value.type === "boolean"
           ? "orange"
           : value.type === "integer"
@@ -136,14 +137,16 @@ function getOperationMd(
           : value.type === "string"
           ? "green"
           : "red";
-        const ref = (depth < 2) && getRef(value);
+        const ref = (depth < 2) && (!value.enum) && getRef(value);
         return [
           `**\`${key}\`** ${
             requiredSet.has(key)
               ? `<mark style="color:red;">**\\***</mark>`
               : ""
           } <mark style="color:${color};">**${typeName}**</mark>\n\n`,
-          value.description && value.description + "\n\n",
+          value.enum
+            ? getResTabEnum(value)
+            : (value.description && value.description + "\n\n"),
           ref && [
             `<details>\n`,
             `<summary>${getRefName(ref)}</summary>\n\n`,
@@ -158,12 +161,20 @@ function getOperationMd(
       if (schema.type === "object") return String(schema["#ref"]);
       if (schema.type === "array" && schema.items) return getRef(schema.items);
     }
-    function getTypeName(schema: SchemaObject): string {
-      switch (schema.type) {
+    function getTypeName(
+      _schema: SchemaObject,
+      resolvedSchema?: SchemaObject,
+    ): string {
+      const schema = resolvedSchema || _schema;
+      switch (_schema.type) {
+        case "string":
+          return getRefName(schema["#ref"] || "string");
         case "object":
           return getRefName(schema["#ref"] || "object");
         case "array":
-          return `Array\\[${getTypeName(schema.items || {})}]`;
+          return `Array\\[${
+            getTypeName(resolveSchema(_schema.items || {}, refMap, entityMap))
+          }]`;
         default:
           return String(schema.type);
       }
@@ -196,7 +207,7 @@ function collectAllRefs(
         const ref = item["#ref"] || item.items?.["#ref"];
         if (!ref) continue;
         const itemSchema = refMap[ref] || entityMap[ref];
-        if (hasParent) refs.add(ref);
+        if (!itemSchema.enum && hasParent) refs.add(ref);
         walk(itemSchema, !hasParent);
       }
     }
@@ -209,7 +220,7 @@ function resolveSchema(
   entityMap: ProcessedSchema["entityMap"],
 ): SchemaObject {
   if (schema.type) {
-    if (schema.type === "array") return schema.items!;
+    if (schema.type === "array") return schema.items || schema;
     return schema;
   }
   if (schema.oneOf) {
