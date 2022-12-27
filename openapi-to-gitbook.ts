@@ -137,7 +137,12 @@ function getOperationMd(
           : value.type === "string"
           ? "green"
           : "red";
-        const ref = (depth < 2) && (!value.enum) && getRef(value);
+        const ref = getRef(value);
+        const isObject = (
+          (typeName === "object") &&
+          Object.keys(value.properties || {}).length
+        );
+        const showDetail = (depth < 2) && (!value.enum) && (ref || isObject);
         return [
           `**\`${key}\`** ${
             requiredSet.has(key)
@@ -147,9 +152,9 @@ function getOperationMd(
           value.enum
             ? getResTabEnum(value)
             : (value.description && value.description + "\n\n"),
-          ref && [
+          showDetail && [
             `<details>\n`,
-            `<summary>${getRefName(ref)}</summary>\n\n`,
+            `<summary>${getRefName(ref || key)}</summary>\n\n`,
             getResTabContent(value, depth + 1),
             `\n</details>\n\n`,
           ],
@@ -158,7 +163,7 @@ function getOperationMd(
       }),
     );
     function getRef(schema: SchemaObject): string | undefined {
-      if (schema.type === "object") return String(schema["#ref"]);
+      if (schema.type === "object") return schema["#ref"];
       if (schema.type === "array" && schema.items) return getRef(schema.items);
     }
     function getTypeName(
@@ -176,7 +181,7 @@ function getOperationMd(
             getTypeName(resolveSchema(_schema.items || {}, refMap, entityMap))
           }]`;
         default:
-          return String(schema.type);
+          return String(schema.type || "object");
       }
     }
   }
