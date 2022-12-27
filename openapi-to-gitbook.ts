@@ -239,9 +239,9 @@ interface PathGroup {
 type PathGroupItem = ProcessedSchema["pathGroupByTags"][string][number];
 function* pathGroups(schema: ProcessedSchema): Generator<PathGroup> {
   for (const [tag, items] of Object.entries(schema.pathGroupByTags)) {
-    const description = String(
-      schema.tags.find(({ name }) => name === tag)?.description,
-    );
+    const t = schema.tags.find(({ name }) => name === tag);
+    if (!t) continue;
+    const description = String(t?.description);
     yield { tag, description, items };
   }
 }
