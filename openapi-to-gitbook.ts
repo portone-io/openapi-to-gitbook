@@ -80,7 +80,8 @@ function getOperationMd(
     ]),
     requestBodySchema && reqBodyToParameters(requestBodySchema),
     Object.entries(responses).map(([status, res]) => {
-      const schema = res.content!["application/json"].schema!;
+      const schema = res.content?.["application/json"]?.schema;
+      if (!schema) return "";
       const refs = collectEvenRefs(schema, refMap, entityMap);
       return [
         `{% swagger-response status="${status}" description=${
@@ -241,7 +242,7 @@ function collectEvenRefs(
     if (schema.properties) {
       for (const [, item] of Object.entries(schema.properties)) {
         const ref = item["#ref"] || item.items?.["#ref"];
-        if (ref) {
+        if (ref && !refs.has(ref)) {
           const itemSchema = refMap[ref] || entityMap[ref];
           if (!itemSchema.enum && hasParent) refs.add(ref);
           walk(itemSchema, !hasParent);
@@ -267,7 +268,7 @@ function collectAllRefs(
     if (schema.properties) {
       for (const [, item] of Object.entries(schema.properties)) {
         const ref = item["#ref"] || item.items?.["#ref"];
-        if (ref) {
+        if (ref && !refs.has(ref)) {
           const itemSchema = refMap[ref] || entityMap[ref];
           refs.add(ref);
           walk(itemSchema);
