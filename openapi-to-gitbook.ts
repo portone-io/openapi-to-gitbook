@@ -58,7 +58,12 @@ function getOperationMd(
 ): string {
   const { refMap, entityMap } = schema;
   const { path, methodOperation: { method, operation } } = item;
-  const { summary, description, parameters = [], responses } = operation;
+  const { summary, description, parameters = [], requestBody, responses } =
+    operation;
+  const requestBodySchema = requestBody?.content?.["application/json"]?.schema;
+  const requestBodyRefs = requestBodySchema
+    ? collectAllRefs(requestBodySchema, refMap, entityMap)
+    : [];
   const baseUrl = "https://api.portone.io";
   return arrayToString([
     `## ⌨ ${summary}\n`,
@@ -73,38 +78,64 @@ function getOperationMd(
       p.description && p.description + "\n",
       `{% endswagger-parameter %}\n`,
     ]),
+    requestBodySchema && reqBodyToParameters(requestBodySchema),
     Object.entries(responses).map(([status, res]) => {
       const schema = res.content!["application/json"].schema!;
-      const refs = collectAllRefs(schema, refMap, entityMap);
+      const refs = collectEvenRefs(schema, refMap, entityMap);
       return [
         `{% swagger-response status="${status}" description=${
           JSON.stringify(res.description)
         } %}\n`,
-        chunk([
-          getResTab("Response", schema),
-          ...refs.sort(
-            (a, b) => (
-              getRefName(a.toLowerCase()) < getRefName(b.toLowerCase()) ? -1 : 1
-            ),
-          ).map((ref) => {
-            const title = getRefName(ref);
-            const schema = refMap[ref] || entityMap[ref];
-            if (schema == null) {
-              console.log(title, ref);
-              return "";
-            }
-            return getResTab(title, schema);
-          }),
-        ], 4).map((tabs) => [
-          `{% tabs %}\n`,
-          tabs,
-          `{% endtabs %}\n`,
-        ]),
+        wrapTabs([getResTab("Response", schema), ...getTabs(refs)]),
         `{% endswagger-response %}\n`,
       ];
     }),
     `{% endswagger %}\n`,
+    requestBodyRefs.length ? wrapTabs(getTabs(requestBodyRefs)) : "",
   ]);
+  function reqBodyToParameters(_schema: SchemaObject): string {
+    const schema = resolveSchema(_schema, refMap, entityMap);
+    const type = Array.isArray(schema.enum) ? "enum" : "object";
+    if (type !== "object") return "";
+    const { properties = {} } = schema;
+    const requiredSet = new Set<string>(schema.required || []);
+    return arrayToString(
+      Object.entries(properties).map(([key, _value]) => {
+        const value = resolveSchema(_value, refMap, entityMap);
+        const typeName = getTypeName(_value, value);
+        return [
+          `{% swagger-parameter in="body" name="${key}" type="${typeName}" required="${
+            requiredSet.has(key) && !("default" in value)
+          }" %}\n`,
+          value.description && value.description + "\n",
+          ("default" in value) && ` (기본값: \`"${value.default}")\`\n`,
+          `{% endswagger-parameter %}\n`,
+        ];
+      }),
+    );
+  }
+  function wrapTabs(tabs: string[]) {
+    return chunk(tabs, 4).map((tabs) => [
+      `{% tabs %}\n`,
+      tabs,
+      `{% endtabs %}\n`,
+    ]);
+  }
+  function getTabs(refs: string[]): string[] {
+    return refs.sort(
+      (a, b) => (
+        getRefName(a.toLowerCase()) < getRefName(b.toLowerCase()) ? -1 : 1
+      ),
+    ).map((ref) => {
+      const title = getRefName(ref);
+      const schema = refMap[ref] || entityMap[ref];
+      if (schema == null) {
+        console.log(title, ref);
+        return "";
+      }
+      return getResTab(title, schema);
+    });
+  }
   function getResTab(title: string, schema: SchemaObject): string {
     return arrayToString([
       `{% tab title="${title}" %}\n`,
@@ -162,27 +193,27 @@ function getOperationMd(
         ];
       }),
     );
-    function getRef(schema: SchemaObject): string | undefined {
-      if (schema.type === "object") return schema["#ref"];
-      if (schema.type === "array" && schema.items) return getRef(schema.items);
-    }
-    function getTypeName(
-      _schema: SchemaObject,
-      resolvedSchema?: SchemaObject,
-    ): string {
-      const schema = resolvedSchema || _schema;
-      switch (_schema.type) {
-        case "string":
-          return getRefName(schema["#ref"] || "string");
-        case "object":
-          return getRefName(schema["#ref"] || "object");
-        case "array":
-          return `Array\\[${
-            getTypeName(resolveSchema(_schema.items || {}, refMap, entityMap))
-          }]`;
-        default:
-          return String(schema.type || "object");
-      }
+  }
+  function getRef(schema: SchemaObject): string | undefined {
+    if (schema.type === "object") return schema["#ref"];
+    if (schema.type === "array" && schema.items) return getRef(schema.items);
+  }
+  function getTypeName(
+    _schema: SchemaObject,
+    resolvedSchema?: SchemaObject,
+  ): string {
+    const schema = resolvedSchema || _schema;
+    switch (_schema.type) {
+      case "string":
+        return getRefName(schema["#ref"] || "string");
+      case "object":
+        return getRefName(schema["#ref"] || "object");
+      case "array":
+        return `Array\\[${
+          getTypeName(resolveSchema(_schema.items || {}, refMap, entityMap))
+        }]`;
+      default:
+        return String(schema.type || "object");
     }
   }
   function getResTabEnum(schema: SchemaObject): string {
@@ -197,7 +228,7 @@ function getOperationMd(
 function getRefName(ref: string): string {
   return String(ref.split("/").pop());
 }
-function collectAllRefs(
+function collectEvenRefs(
   schema: SchemaObject,
   refMap: ProcessedSchema["refMap"],
   entityMap: ProcessedSchema["entityMap"],
@@ -223,6 +254,32 @@ function collectAllRefs(
     }
   }
 }
+function collectAllRefs(
+  schema: SchemaObject,
+  refMap: ProcessedSchema["refMap"],
+  entityMap: ProcessedSchema["entityMap"],
+): string[] {
+  const refs: Set<string> = new Set();
+  walk(schema);
+  return Array.from(refs);
+  function walk(_schema: SchemaObject) {
+    const schema = resolveSchema(_schema, refMap, entityMap);
+    if (schema.properties) {
+      for (const [, item] of Object.entries(schema.properties)) {
+        const ref = item["#ref"] || item.items?.["#ref"];
+        if (ref) {
+          const itemSchema = refMap[ref] || entityMap[ref];
+          refs.add(ref);
+          walk(itemSchema);
+        } else {
+          if (item.type !== "array" && item.properties) {
+            walk(item);
+          }
+        }
+      }
+    }
+  }
+}
 
 function resolveSchema(
   schema: SchemaObject,
@@ -240,11 +297,19 @@ function resolveSchema(
     };
   }
   if (schema.allOf) {
-    return Object.assign(
-      {},
-      ...schema.allOf.map((s) => resolveSchema(s, refMap, entityMap)),
-      { description: schema.description },
-    );
+    const everySchema = schema.allOf
+      .map((s) => resolveSchema(s, refMap, entityMap))
+      .filter((s) => s.type === "object");
+    const result = {
+      ...everySchema[0],
+      required: everySchema.map((s) => s.required || []).flat(1),
+      properties: Object.assign(
+        {},
+        ...everySchema.map((s) => s.properties || {}),
+      ),
+      description: schema.description,
+    };
+    return result;
   }
   if (schema.$ref) {
     return refMap[schema.$ref] || entityMap[schema.$ref];
