@@ -1,0 +1,24 @@
+openapi: 3.1.0
+info:
+  title: PortOne Public Interface
+  description: PortOne REST API
+  version: 0.0.1
+tags:
+  - name: payment
+    description: 결제
+  - name: cash_receipt
+    description: 현금영수증
+  - name: schedule
+    description: 정기결제
+  - name: billing_key
+    description: 빌링키
+  - name: channel
+    description: 채널
+  - name: authorization
+    description: 인증
+yamls:
+  - './.pollapo/iamport/channel-service-interface/public/server.yaml'
+  - './.pollapo/iamport/merchant-service-interface/rest/merchant_server.yaml'
+  - './.pollapo/iamport/onboarding-service-interface/rest/onboarding_service.yaml'
+  - './.pollapo/iamport/payment-service-interface/rest/payment_server.yaml'
+  - './.pollapo/iamport/transaction-service-interface/rest/transaction_service.swagger.yaml'

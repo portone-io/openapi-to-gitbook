@@ -246,15 +246,20 @@ export function getSchemaResolver(
 
   function resolveSchemaObjectWithRefOrRefObject<
     T extends SchemaObjectWithRef | ReferenceObject,
-  >(object: T): SchemaObject;
+  >(object: T, resolvedRefs?: Set<string>): SchemaObject;
   function resolveSchemaObjectWithRefOrRefObject<
     T extends SchemaObjectWithRef | ReferenceObject | undefined,
-  >(object: T): SchemaObject | undefined;
+  >(object: T, resolvedRefs?: Set<string>): SchemaObject | undefined;
   function resolveSchemaObjectWithRefOrRefObject<
     T extends SchemaObjectWithRef | ReferenceObject | undefined,
-  >(object: T): SchemaObject | undefined {
+  >(
+    object: T,
+    resolvedRefs: Set<string> = new Set(),
+  ): SchemaObject | undefined {
     if (object == null) return object;
     if (isReferenceObject(object)) {
+      if (resolvedRefs.has(object.$ref)) return object;
+      resolvedRefs.add(object.$ref);
       dereferenced.push(object.$ref);
       return resolveSchemaObjectWithRef({
         ...refMap[object.$ref],
@@ -269,20 +274,38 @@ export function getSchemaResolver(
         ...objectWithRef,
         additionalProperties: {},
         allOf: objectWithRef.allOf?.map<SchemaObject>(
-          resolveSchemaObjectWithRefOrRefObject,
+          (object) =>
+            resolveSchemaObjectWithRefOrRefObject(
+              object,
+              new Set(resolvedRefs),
+            ),
         ),
         oneOf: objectWithRef.oneOf?.map<SchemaObject>(
-          resolveSchemaObjectWithRefOrRefObject,
+          (object) =>
+            resolveSchemaObjectWithRefOrRefObject(
+              object,
+              new Set(resolvedRefs),
+            ),
         ),
         anyOf: objectWithRef.anyOf?.map<SchemaObject>(
-          resolveSchemaObjectWithRefOrRefObject,
+          (object) =>
+            resolveSchemaObjectWithRefOrRefObject(
+              object,
+              new Set(resolvedRefs),
+            ),
         ),
-        not: resolveSchemaObjectWithRefOrRefObject(objectWithRef.not),
-        items: resolveSchemaObjectWithRefOrRefObject(objectWithRef.items),
+        not: resolveSchemaObjectWithRefOrRefObject(
+          objectWithRef.not,
+          new Set(resolvedRefs),
+        ),
+        items: resolveSchemaObjectWithRefOrRefObject(
+          objectWithRef.items,
+          new Set(resolvedRefs),
+        ),
         properties: Object.fromEntries(
           Object.entries(objectWithRef.properties ?? {}).map(([key, value]) => [
             key,
-            resolveSchemaObjectWithRefOrRefObject(value),
+            resolveSchemaObjectWithRefOrRefObject(value, new Set(resolvedRefs)),
           ]),
         ),
       };

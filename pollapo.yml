@@ -1,5 +1,13 @@
 deps:
-  - iamport/federated-public-interface@main
+  - iamport/channel-service-interface@main
+  - iamport/merchant-service-interface@main
+  - iamport/onboarding-service-interface@main
+  - iamport/payment-service-interface@main
+  - iamport/transaction-service-interface@main
 root:
   lock:
-    iamport/federated-public-interface@main: 9162802fc656d7cb3e4c51bb5817cebc74e08236
+    iamport/channel-service-interface@main: acc80966a0789bcc027568a1746ce3700d9555dc
+    iamport/merchant-service-interface@main: 508a8775604bdf974c6e4304d7c3be54b00ddb72
+    iamport/onboarding-service-interface@main: 42425bc9684c1af7f08a710e432c89ea96e77727
+    iamport/payment-service-interface@main: 5fa6001256d0882209fa8a7279a2de96b041a8de
+    iamport/transaction-service-interface@main: c69390b0dbed6959571815a0592b8b20cd0419ff
