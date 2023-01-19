@@ -46,9 +46,12 @@ function getTagMd(schema: ProcessedSchema, pathGroup: PathGroup): string {
     "---\n",
     "\n",
     `# ${pathGroup.description} 관련 API\n\n`,
-    pathGroup.items.map((item) =>
-      getOperationMd(schema, { ...pathGroup, ...item })
-    ),
+    pathGroup.items
+      .filter(
+        ({ methodOperation: { operation } }) =>
+          Boolean((operation as any)["x-portone-public"]),
+      )
+      .map((item) => getOperationMd(schema, { ...pathGroup, ...item })),
   ]);
 }
 
