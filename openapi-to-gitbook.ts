@@ -67,7 +67,7 @@ function getOperationMd(
   const requestBodyRefs = requestBodySchema
     ? collectAllRefs(requestBodySchema, refMap, entityMap)
     : [];
-  const baseUrl = "https://api.portone.io";
+  const baseUrl = "https://api.portone.io/v2";
   return arrayToString([
     `## ⌨ ${summary}\n`,
     `{% swagger method="${method}" path="${path}" baseUrl="${baseUrl}" summary=${
