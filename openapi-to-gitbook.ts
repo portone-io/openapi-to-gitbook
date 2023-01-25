@@ -68,12 +68,14 @@ function getOperationMd(
     ? collectAllRefs(requestBodySchema, refMap, entityMap)
     : [];
   const baseUrl = "https://api.portone.io/v2";
+  const swaggerSummary = (description || summary || "")
+    .replaceAll(/\r?\n/g, " ") // replace newline to space
+    .replaceAll(/\[(.*?)\]\(.*?\)/g, "$1"); // remove link
   return arrayToString([
     `## ⌨ ${summary}\n`,
     `{% swagger method="${method}" path="${path}" baseUrl="${baseUrl}" summary=${
-      JSON.stringify(description || summary)
+      JSON.stringify(swaggerSummary)
     } %}\n`,
-    // description
     parameters.map((p) => [
       `{% swagger-parameter in="${p.in}" name="${p.name}" type="${p.schema?.type}" required="${
         Boolean(p.required)
