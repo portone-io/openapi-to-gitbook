@@ -6,8 +6,8 @@ deps:
   - iamport/transaction-service-interface@main
 root:
   lock:
-    iamport/channel-service-interface@main: c4956e130c9b128172d943271a24b8de53078df3
-    iamport/merchant-service-interface@main: 57ecc6bb4abcc0fab71c050fe313241ac515fcb9
-    iamport/onboarding-service-interface@main: b3fb51c617ceca3837b026197d6a1c712f5ab403
-    iamport/payment-service-interface@main: 538ee60af7a71dcab4041a22d2bc8e9cd8ead61b
-    iamport/transaction-service-interface@main: 35fe5c07825d4f52372a8cbf4b64f46a2a306d38
+    iamport/channel-service-interface@main: 10aa598b83fd5da8737eb6fe46b2f9f4e12cccd7
+    iamport/merchant-service-interface@main: b7eb184c31492c805c60eaf9d44f7cbc8e043750
+    iamport/onboarding-service-interface@main: 5682c705f0b9d85bb3dd13b2afc937df4eeee0ac
+    iamport/payment-service-interface@main: dc5e5da358cc4d446e183f26515d3e28ba8c5963
+    iamport/transaction-service-interface@main: 96bea350e70c56580cf35b7aacbb1b3c111f23ce

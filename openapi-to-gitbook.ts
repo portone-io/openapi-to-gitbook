@@ -60,7 +60,7 @@ function getOperationMd(
   item: PathGroup & PathGroupItem,
 ): string {
   const { refMap, entityMap } = schema;
-  const { path, methodOperation: { method, operation } } = item;
+  const { methodOperation: { method, operation } } = item;
   const { summary, description, parameters = [], requestBody, responses } =
     operation;
   const requestBodySchema = requestBody?.content?.["application/json"]?.schema;
@@ -68,14 +68,15 @@ function getOperationMd(
     ? collectAllRefs(requestBodySchema, refMap, entityMap)
     : [];
   const baseUrl = "https://api.portone.io/v2";
-  const swaggerSummary = (description || summary || "")
-    .replaceAll(/\r?\n/g, " ") // replace newline to space
-    .replaceAll(/\[(.*?)\]\(.*?\)/g, "$1"); // remove link
+  const path = item.path.replace(/^\/v2/, "");
+  const swaggerSummary = JSON.stringify(
+    (description || summary || "")
+      .replaceAll(/\r?\n/g, " ") // replace newline to space
+      .replaceAll(/\[(.*?)\]\(.*?\)/g, "$1"), // remove link
+  );
   return arrayToString([
     `## ⌨ ${summary}\n`,
-    `{% swagger method="${method}" path="${path}" baseUrl="${baseUrl}" summary=${
-      JSON.stringify(swaggerSummary)
-    } %}\n`,
+    `{% swagger method="${method}" path="${path}" baseUrl="${baseUrl}" summary=${swaggerSummary} %}\n`,
     parameters.map((p) => [
       `{% swagger-parameter in="${p.in}" name="${p.name}" type="${p.schema?.type}" required="${
         Boolean(p.required)
