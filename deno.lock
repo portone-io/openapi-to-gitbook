@@ -706,7 +706,9 @@
       },
       "brace-expansion@2.0.1": {
         "integrity": "sha512-XnAIvQ8eM+kC6aULx6wuQiwVsnzsi9d3WxzV3FpWTGA19F621kwdbsAcFKXgKUHZWsy+mY6iL1sHTxWEFCytDA==",
-        "dependencies": { "balanced-match": "balanced-match@1.0.2" }
+        "dependencies": {
+          "balanced-match": "balanced-match@1.0.2"
+        }
       },
       "colorette@1.4.0": {
         "integrity": "sha512-Y2oEozpomLn7Q3HFP7dpww7AtMJplbM9lGZP6RDfHqmbeRjiwRg4n6VM6j4KLmRke85uWEI7JqF17f3pqdRA0g==",
@@ -722,7 +724,9 @@
       },
       "js-yaml@4.1.0": {
         "integrity": "sha512-wpxZs9NoxZaJESJGIZTyDEaYpl0FKSA+FB9aJiyemKhMwkxQg63h4T1KJgUGHpTqPDNRcmmYLugrRjJlBtWvRA==",
-        "dependencies": { "argparse": "argparse@2.0.1" }
+        "dependencies": {
+          "argparse": "argparse@2.0.1"
+        }
       },
       "json-schema-traverse@1.0.0": {
         "integrity": "sha512-NM8/P9n3XjXhIZn1lLhkFaACTOURQXjWhV4BA/RnOv8xvgqtqpAX9IO4mRQxSx1Rlo4tqzeqb0sOlruaOy3dug==",
@@ -738,11 +742,15 @@
       },
       "minimatch@5.1.1": {
         "integrity": "sha512-362NP+zlprccbEt/SkxKfRMHnNY85V74mVnpUpNyr3F35covl09Kec7/sEFLt3RA4oXmewtoaanoIf67SE5Y5g==",
-        "dependencies": { "brace-expansion": "brace-expansion@2.0.1" }
+        "dependencies": {
+          "brace-expansion": "brace-expansion@2.0.1"
+        }
       },
       "node-fetch@2.6.7": {
         "integrity": "sha512-ZjMPFEfVx5j+y2yF35Kzx5sF7kDzxuDj6ziH4FFbOp87zKDZNx8yExJIb05OGF4Nlt9IHFIMBkRl41VdvcNdbQ==",
-        "dependencies": { "whatwg-url": "whatwg-url@5.0.0" }
+        "dependencies": {
+          "whatwg-url": "whatwg-url@5.0.0"
+        }
       },
       "pluralize@8.0.0": {
         "integrity": "sha512-Nc3IT5yHzflTfbjgqWcCPpo7DaKy4FnpB0l/zCAW0Tc7jxAiuqSxHasntB3D7887LSrA93kDJ9IXovxJYxyLCA==",
@@ -762,7 +770,9 @@
       },
       "uri-js@4.4.1": {
         "integrity": "sha512-7rKUyy33Q1yc98pQ1DAmLtwX109F7TIfWlW1Ydo8Wl1ii1SeHieeh0HHfPeL2fMXK6z0s8ecKs9frCuLJvndBg==",
-        "dependencies": { "punycode": "punycode@2.1.1" }
+        "dependencies": {
+          "punycode": "punycode@2.1.1"
+        }
       },
       "webidl-conversions@3.0.1": {
         "integrity": "sha512-2JAn3z8AR6rjK8Sm8orRC0h/bcl/DqL7tRPdGZ4I1CjdF+EaMLmYxBHyXuKL849eucPFhvBoxMsflfOb8kxaeQ==",

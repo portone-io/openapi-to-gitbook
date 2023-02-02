@@ -18,6 +18,8 @@ tags:
     description: 인증
   - name: applications
     description: 온보딩
+  - name: store
+    description: 가맹점관리
 yamls:
   - './.pollapo/iamport/channel-service-interface/public/server.yaml'
   - './.pollapo/iamport/merchant-service-interface/rest/merchant_server.yaml'
