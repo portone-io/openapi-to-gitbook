@@ -225,7 +225,8 @@ function getOperationMd(
   }
   function getResTabEnum(schema: SchemaObject): string {
     return arrayToString([
-      schema.description && schema.description + "\n\n",
+      schema.description &&
+      schema.description.replaceAll("\n", "<br>") + "\n\n",
       schema.default && `기본값: \`"${schema.default}"\`\n\n`,
       (schema.enum as string[]).map((v) => `\`"${v}"\``).join(", ") + "\n",
     ]);
