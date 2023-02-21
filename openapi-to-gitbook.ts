@@ -176,10 +176,8 @@ function getOperationMd(
           ? "green"
           : "red";
         const ref = getRef(value);
-        const isObject = (
-          (typeName === "object") &&
-          Object.keys(value.properties || {}).length
-        );
+        const isObject = (typeName === "object") &&
+          Object.keys(value.properties || {}).length;
         const showDetail = (depth < 2) && (!value.enum) && (ref || isObject);
         return [
           `**\`${key}\`** ${
@@ -295,7 +293,11 @@ function resolveSchema(
   entityMap: ProcessedSchema["entityMap"],
 ): SchemaObject {
   if (schema.type) {
-    if (schema.type === "array") return schema.items || schema;
+    if (schema.type === "array") {
+      const s = schema.items || schema;
+      const description = schema.description || schema.items?.description;
+      return { ...s, description };
+    }
     return schema;
   }
   if (schema.oneOf) {
