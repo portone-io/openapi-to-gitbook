@@ -10,4 +10,4 @@ root:
     iamport/merchant-service-interface@main: ea69bfe80aca62705318c3952c6f7945b1262143
     iamport/onboarding-service-interface@main: 30fdfd615529ac22cf80a195512b85c48a219f4a
     iamport/payment-service-interface@main: e253b606696f159c6245a57ccc5756dc632b82df
-    iamport/transaction-service-interface@main: 9c32ce33e4f51a5f9470b6d2656392b0980c3e46
+    iamport/transaction-service-interface@main: 9a5f2bf3c6f6d295582ef623dcba64de6b8d668b
