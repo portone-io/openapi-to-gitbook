@@ -24,5 +24,5 @@ yamls:
   - './.pollapo/iamport/channel-service-interface/public/server.yaml'
   - './.pollapo/iamport/merchant-service-interface/rest/merchant_server.yaml'
   - './.pollapo/iamport/onboarding-service-interface/rest/onboarding_service.yaml'
-  - './.pollapo/iamport/payment-service-interface/rest/public/payment_server.yaml'
+  - './.pollapo/iamport/payment-hub-service-interface/rest/public/payment_server.yaml'
   - './.pollapo/iamport/transaction-service-interface/rest/transaction_service.swagger.yaml'
