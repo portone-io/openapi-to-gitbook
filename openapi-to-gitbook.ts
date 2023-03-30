@@ -70,13 +70,15 @@ function getOperationMd(
   const baseUrl = "https://api.portone.io/v2";
   const path = item.path.replace(/^\/v2/, "");
   const swaggerSummary = JSON.stringify(
-    (description || summary || "")
+    (summary || "")
       .replaceAll(/\r?\n/g, " ") // replace newline to space
       .replaceAll(/\[(.*?)\]\(.*?\)/g, "$1"), // remove link
   );
   return arrayToString([
     `## ⌨ ${summary}\n`,
     `{% swagger method="${method}" path="${path}" baseUrl="${baseUrl}" summary=${swaggerSummary} %}\n`,
+    description &&
+    `{% swagger-description %}\n${description}{% endswagger-description %}\n`,
     parameters.map((p) => [
       `{% swagger-parameter in="${p.in}" name="${p.name}" type="${p.schema?.type}" required="${
         Boolean(p.required)
